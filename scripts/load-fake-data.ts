@@ -1,28 +1,21 @@
-import { Client } from 'pg';
-import { loadEnvConfig } from '@next/env';
 import { faker } from '@faker-js/faker';
-
-const projectDir = process.cwd();
-loadEnvConfig(projectDir);
+import { getClient } from '@/db';
+import bcrypt from 'bcrypt';
 
 async function loadFakeData(numUsers: number = 5) {
   console.log(`executing load fake data, generating ${numUsers} new users`);
 
-  const client = new Client({
-    user: process.env.POSTGRES_USER,
-    host: process.env.POSTGRES_HOST,
-    database: process.env.POSTGRES_NAME,
-    password: process.env.POSTGRES_PASSWORD,
-    port: parseInt(process.env.POSTGRES_PORT!),
-  });
+  const client = await getClient();
 
   await client.connect();
   try {
     client.query('begin');
     for (let i = 0; i < numUsers; i++) {
+      const hash = await bcrypt.hash('string123', 10);
+
       await client.query(
         'insert into public.users (username, password, avatar) values ($1, $2, $3);',
-        [faker.internet.userName(), 'password', faker.internet.avatar()]
+        [faker.internet.userName(), hash, faker.internet.avatar()]
       );
     }
 
